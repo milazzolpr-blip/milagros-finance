@@ -21,12 +21,7 @@ const RisparmiPage = lazy(() => import("./pages/RisparmiPage"));
 const ScadenzePage = lazy(() => import("./pages/ScadenzePage"));
 
 function PageFallback() {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, padding: "60px 0" }}>
-      <img src="/icon-192.png" alt="F.A.M." style={{ width: 32, height: 32, borderRadius: 9, opacity: 0.7 }} />
-      <span style={{ color: C.muted, fontSize: 12 }}>Caricamento...</span>
-    </div>
-  );
+  return <div style={{ color: C.muted, fontSize: 13, textAlign: "center", padding: "60px 0" }}>Caricamento...</div>;
 }
 
 export default function App() {

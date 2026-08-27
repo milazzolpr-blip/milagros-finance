@@ -48,7 +48,7 @@ export default function OnboardingScreen({ createWorkspace, reload, switchWorksp
     <div style={{ backgroundColor: C.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <div style={{ width: "100%", maxWidth: 360 }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <img src="/icon-192.png" alt="F.A.M." style={{ width: 64, height: 64, borderRadius: 18, margin: "0 auto 12px", display: "block" }} />
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, #a78bfa, #7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, margin: "0 auto 12px" }}>🏠</div>
           <h1 style={{ color: C.text, fontSize: 20, fontWeight: 700, margin: 0 }}>Benvenuto</h1>
           <p style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>Non fai ancora parte di nessun workspace</p>
         </div>

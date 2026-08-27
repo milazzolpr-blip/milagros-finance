@@ -44,10 +44,9 @@ export default function LoginPage() {
     <div style={{ backgroundColor: C.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <div style={{ width: "100%", maxWidth: 360 }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <img src="/icon-192.png" alt="F.A.M." style={{ width: 64, height: 64, borderRadius: 18, margin: "0 auto 12px", display: "block" }} />
-          <h1 style={{ color: C.text, fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: "0.02em" }}>F.A.M.</h1>
-          <p style={{ color: C.muted, fontSize: 12, marginTop: 2, letterSpacing: "0.04em" }} className="uppercase">Family App Manager</p>
-          <p style={{ color: C.muted, fontSize: 13, marginTop: 10 }}>{titolo}</p>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg, #a78bfa, #7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, margin: "0 auto 12px" }}>🏠</div>
+          <h1 style={{ color: C.text, fontSize: 22, fontWeight: 700, margin: 0 }}>Milagros Finance</h1>
+          <p style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>{titolo}</p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ backgroundColor: C.panel, border: `1px solid ${C.border}`, borderRadius: 18, padding: 20 }}>
