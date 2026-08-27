@@ -76,7 +76,8 @@ export default function GoogleCalendarImportSheet({ workspace, member, onClose, 
           const tuttoIlGiorno = !!e.start.date;
           const dataInizio = tuttoIlGiorno ? e.start.date : e.start.dateTime.slice(0, 10);
           const oraInizio = tuttoIlGiorno ? null : e.start.dateTime.slice(11, 16);
-          return { id: e.id, titolo: e.summary || "(Senza titolo)", data: dataInizio, ora: oraInizio, luogo: e.location || null };
+          const oraFine = tuttoIlGiorno ? null : e.end?.dateTime?.slice(11, 16) || null;
+          return { id: e.id, titolo: e.summary || "(Senza titolo)", data: dataInizio, ora: oraInizio, oraFine, luogo: e.location || null, tipo: "appuntamento" };
         });
       setEventi(eventiTrovati);
       setSelezionati(Object.fromEntries(eventiTrovati.map((e) => [e.id, true])));
@@ -89,26 +90,40 @@ export default function GoogleCalendarImportSheet({ workspace, member, onClose, 
 
   const toggleSelezione = (id) => setSelezionati((prev) => ({ ...prev, [id]: !prev[id] }));
   const selezionaTutti = (valore) => setSelezionati(Object.fromEntries(eventi.map((e) => [e.id, valore])));
+  const toggleTipo = (id) => setEventi((prev) => prev.map((e) => e.id === id ? { ...e, tipo: e.tipo === "appuntamento" ? "turno" : "appuntamento" } : e));
 
   const handleImporta = async () => {
     const daImportare = eventi.filter((e) => selezionati[e.id]);
     if (daImportare.length === 0) return;
     setFase("importazione");
 
-    const righe = daImportare.map((e) => ({
-      workspace_id: workspace.id,
-      titolo: e.titolo,
-      data: e.data,
-      ora_inizio: e.ora,
-      luogo: e.luogo,
-      member_ids: member ? [member.id] : [],
-      google_event_id: e.id,
-    }));
+    const turniDaImportare = daImportare.filter((e) => e.tipo === "turno" && e.ora && e.oraFine);
+    const appuntamentiDaImportare = daImportare.filter((e) => !(e.tipo === "turno" && e.ora && e.oraFine));
 
-    const { error, data } = await supabase.from("eventi_generici").upsert(righe, { onConflict: "workspace_id,google_event_id", ignoreDuplicates: true }).select();
-    if (error) { setErrore("Import non riuscito: " + error.message); setFase("errore"); return; }
+    let erroreRiscontrato = null;
+    let totaleImportati = 0;
 
-    showToast(`${data?.length ?? daImportare.length} appuntamenti importati dal tuo Google Calendar`);
+    if (appuntamentiDaImportare.length > 0) {
+      const righe = appuntamentiDaImportare.map((e) => ({
+        workspace_id: workspace.id, titolo: e.titolo, data: e.data, ora_inizio: e.ora, luogo: e.luogo,
+        member_ids: member ? [member.id] : [], google_event_id: e.id,
+      }));
+      const { error, data } = await supabase.from("eventi_generici").upsert(righe, { onConflict: "workspace_id,google_event_id", ignoreDuplicates: true }).select();
+      if (error) erroreRiscontrato = error; else totaleImportati += data?.length ?? righe.length;
+    }
+
+    if (!erroreRiscontrato && turniDaImportare.length > 0) {
+      const righe = turniDaImportare.map((e) => ({
+        workspace_id: workspace.id, member_id: member?.id, data: e.data, ora_inizio: e.ora, ora_fine: e.oraFine,
+        modalita: "sede", azienda_id: null, google_event_id: e.id,
+      }));
+      const { error, data } = await supabase.from("turni_assegnati").upsert(righe, { onConflict: "workspace_id,google_event_id", ignoreDuplicates: true }).select();
+      if (error) erroreRiscontrato = error; else totaleImportati += data?.length ?? righe.length;
+    }
+
+    if (erroreRiscontrato) { setErrore("Import non riuscito: " + erroreRiscontrato.message); setFase("errore"); return; }
+
+    showToast(`${totaleImportati} elementi importati dal tuo Google Calendar`);
     onImported?.();
     onClose();
   };
@@ -129,7 +144,7 @@ export default function GoogleCalendarImportSheet({ workspace, member, onClose, 
       {fase === "iniziale" && (
         <>
           <div className="text-sm mb-4" style={{ color: C.muted }}>
-            Ti connetti al tuo account Google, scegli il periodo, e importi i tuoi appuntamenti come eventi in Calendario — assegnati automaticamente a te.
+            Ti connetti al tuo account Google, scegli il periodo, e importi i tuoi eventi — come appuntamenti o, se hanno un orario di inizio e fine, anche come turni di lavoro.
           </div>
           <div className="flex gap-2 mb-4">
             <div className="flex-1">
@@ -179,15 +194,25 @@ export default function GoogleCalendarImportSheet({ workspace, member, onClose, 
           {eventi.length === 0 && <div className="text-sm text-center" style={{ color: C.muted, padding: "20px 0" }}>Nessun appuntamento trovato in questo periodo.</div>}
 
           <div className="space-y-2 mb-4" style={{ maxHeight: 340, overflowY: "auto" }}>
-            {eventi.map((e) => (
-              <button key={e.id} onClick={() => toggleSelezione(e.id)} className="w-full flex items-center gap-2.5 text-left" style={{ background: "none", border: "none", padding: "6px 0" }}>
-                {selezionati[e.id] ? <CheckSquare size={17} style={{ color: C.purple, flexShrink: 0 }} /> : <Square size={17} style={{ color: C.muted, flexShrink: 0 }} />}
-                <div className="flex-1" style={{ minWidth: 0 }}>
-                  <div className="text-sm truncate" style={{ color: C.text }}>{e.titolo}</div>
-                  <div className="text-xs" style={{ color: C.muted }}>{e.data}{e.ora ? ` · ${e.ora}` : ""}{e.luogo ? ` · ${e.luogo}` : ""}</div>
+            {eventi.map((e) => {
+              const puoEssereConvertitoInTurno = !!(e.ora && e.oraFine);
+              return (
+                <div key={e.id} className="flex items-center gap-2.5" style={{ padding: "6px 0" }}>
+                  <button onClick={() => toggleSelezione(e.id)} style={{ background: "none", border: "none", flexShrink: 0, padding: 0 }}>
+                    {selezionati[e.id] ? <CheckSquare size={17} style={{ color: C.purple }} /> : <Square size={17} style={{ color: C.muted }} />}
+                  </button>
+                  <div className="flex-1" style={{ minWidth: 0 }} onClick={() => toggleSelezione(e.id)}>
+                    <div className="text-sm truncate" style={{ color: C.text }}>{e.titolo}</div>
+                    <div className="text-xs" style={{ color: C.muted }}>{e.data}{e.ora ? ` · ${e.ora}${e.oraFine ? `–${e.oraFine}` : ""}` : ""}{e.luogo ? ` · ${e.luogo}` : ""}</div>
+                  </div>
+                  {puoEssereConvertitoInTurno && (
+                    <button onClick={() => toggleTipo(e.id)} className="text-xs font-medium flex-shrink-0" style={{
+                      padding: "5px 10px", borderRadius: 9999, backgroundColor: e.tipo === "turno" ? C.sky : C.panel2, color: e.tipo === "turno" ? "#0a0b0f" : C.muted, border: `1px solid ${e.tipo === "turno" ? C.sky : C.border}`,
+                    }}>{e.tipo === "turno" ? "Turno" : "Appuntamento"}</button>
+                  )}
                 </div>
-              </button>
-            ))}
+              );
+            })}
           </div>
 
           {eventi.length > 0 && (
