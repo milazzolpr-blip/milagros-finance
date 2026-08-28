@@ -4,12 +4,9 @@ import { C, todayLocal } from "../theme";
 import { Sheet } from "./ui";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
-import { useAuth } from "../contexts/AuthContext";
-import { notificaAltriMembri } from "../lib/notificaAltriMembri";
 
 export default function EventoGenericoSheet({ workspace, existing, defaultDate, onClose, onSaved, onDeleted }) {
   const showToast = useToast();
-  const { user } = useAuth();
   const isEdit = !!existing;
   const [members, setMembers] = useState([]);
   const [titolo, setTitolo] = useState(existing?.titolo || "");
@@ -24,7 +21,7 @@ export default function EventoGenericoSheet({ workspace, existing, defaultDate, 
   const [error, setError] = useState("");
 
   useEffect(() => {
-    supabase.from("workspace_members").select("id, user_id, display_name, colore").eq("workspace_id", workspace.id).eq("status", "active")
+    supabase.from("workspace_members").select("id, display_name, colore").eq("workspace_id", workspace.id).eq("status", "active")
       .then(({ data }) => setMembers(data || []));
   }, [workspace.id]);
 
@@ -49,15 +46,6 @@ export default function EventoGenericoSheet({ workspace, existing, defaultDate, 
       : await supabase.from("eventi_generici").insert(payload);
     setSaving(false);
     if (result.error) { setError(result.error.message); return; }
-    if (!isEdit) {
-      const mioNome = members.find((m) => m.user_id === user.id)?.display_name || "Qualcuno";
-      notificaAltriMembri({
-        workspaceId: workspace.id, escludiUserId: user.id, entityType: "evento",
-        title: `${mioNome} ha aggiunto un appuntamento`,
-        body: `${payload.titolo} · ${payload.data}${payload.ora_inizio ? ` alle ${payload.ora_inizio.slice(0, 5)}` : ""}`,
-        navigateTo: "/app/calendario",
-      });
-    }
     showToast(isEdit ? "Appuntamento aggiornato" : "Appuntamento salvato");
     onSaved();
   };

@@ -3,7 +3,6 @@ import { Clock, Building2, Home as HomeIcon, CalendarDays, ChevronLeft, ChevronR
 import { C, todayLocal } from "../theme";
 import { Sheet } from "./ui";
 import { supabase } from "../lib/supabase";
-import { notificaAltriMembri } from "../lib/notificaAltriMembri";
 
 export default function TurnoSheet({ workspace, member, defaultDate, onClose, onSaved }) {
   const [members, setMembers] = useState([]);
@@ -112,13 +111,6 @@ export default function TurnoSheet({ workspace, member, defaultDate, onClose, on
 
     const { error: insError } = await supabase.from("turni_assegnati").insert(rows);
     if (insError) { setSaving(false); setError(insError.message); return; }
-
-    notificaAltriMembri({
-      workspaceId: workspace.id, escludiUserId: member?.user_id, entityType: "turno",
-      title: `${member?.display_name || "Qualcuno"} ha aggiunto ${rows.length > 1 ? "dei turni" : "un turno"}`,
-      body: rows.length === 1 ? `${rows[0].data} · ${rows[0].ora_inizio?.slice(0, 5)}–${rows[0].ora_fine?.slice(0, 5)}` : `${rows.length} giorni`,
-      navigateTo: "/app/calendario",
-    });
 
     if (salvaSuggerimento && nomeSuggerimento.trim()) {
       await supabase.from("turni_suggeriti").insert({

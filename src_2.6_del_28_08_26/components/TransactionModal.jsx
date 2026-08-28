@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUpRight, ArrowDownRight, ChevronRight, X, Camera, Banknote, CreditCard, Repeat, Wallet, Smartphone, Landmark, CalendarDays, Trash2, Paperclip } from "lucide-react";
 import { C, todayLocal } from "../theme";
 import { supabase } from "../lib/supabase";
-import { notificaAltriMembri } from "../lib/notificaAltriMembri";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { Sheet } from "./ui";
@@ -182,14 +181,6 @@ export default function TransactionModal({ workspace, member, existing, defaultD
     if (result.error) {
       setError(result.error.message);
       return;
-    }
-    if (!isEdit) {
-      notificaAltriMembri({
-        workspaceId: workspace.id, escludiUserId: user.id, entityType: "transazione",
-        title: `${member?.display_name || "Qualcuno"} ha registrato una transazione`,
-        body: `${payload.tipo === "uscita" ? "-" : "+"}${Number(payload.importo).toFixed(2)} € · ${payload.voce}`,
-        navigateTo: "/app/finanza",
-      });
     }
     showToast(isEdit ? "Transazione aggiornata" : "Transazione salvata");
     onSaved();

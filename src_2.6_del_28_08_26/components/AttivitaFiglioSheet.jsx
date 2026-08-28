@@ -4,12 +4,9 @@ import { C, todayLocal } from "../theme";
 import { Sheet } from "./ui";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
-import { useAuth } from "../contexts/AuthContext";
-import { notificaAltriMembri } from "../lib/notificaAltriMembri";
 
 export default function AttivitaFiglioSheet({ workspace, defaultDate, onClose, onSaved }) {
   const showToast = useToast();
-  const { user } = useAuth();
   const [entita, setEntita] = useState([]);
   const [members, setMembers] = useState([]);
   const [suggerimenti, setSuggerimenti] = useState([]);
@@ -33,7 +30,7 @@ export default function AttivitaFiglioSheet({ workspace, defaultDate, onClose, o
   useEffect(() => {
     Promise.all([
       supabase.from("entita_familiari").select("*").eq("workspace_id", workspace.id).order("nome"),
-      supabase.from("workspace_members").select("id, user_id, display_name, colore").eq("workspace_id", workspace.id).eq("status", "active"),
+      supabase.from("workspace_members").select("id, display_name, colore").eq("workspace_id", workspace.id).eq("status", "active"),
     ]).then(([entRes, memRes]) => {
       setEntita(entRes.data || []);
       setMembers(memRes.data || []);
@@ -100,13 +97,6 @@ export default function AttivitaFiglioSheet({ workspace, defaultDate, onClose, o
     });
     setSaving(false);
     if (insError) { setError(insError.message); return; }
-    const mioNome = members.find((m) => m.user_id === user.id)?.display_name || "Qualcuno";
-    notificaAltriMembri({
-      workspaceId: workspace.id, escludiUserId: user.id, entityType: "figlio",
-      title: `${mioNome} ha aggiunto un'attività per ${entitaSel?.nome || "un membro della famiglia"}`,
-      body: `${titolo.trim()} · ${data}${ora ? ` alle ${ora}` : ""}`,
-      navigateTo: "/app/attivita",
-    });
     showToast("Attività salvata");
     onSaved();
   };

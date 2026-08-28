@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Receipt, Clock, CalendarPlus, Baby, BellOff, ShieldAlert, Wallet } from "lucide-react";
+import { Receipt, Clock, CalendarPlus, Baby, BellOff, ShieldAlert } from "lucide-react";
 import { C } from "../theme";
 import { Sheet } from "./ui";
 import { supabase } from "../lib/supabase";
 
-const ICONE = { scadenza: Receipt, turno: Clock, evento: CalendarPlus, figlio: Baby, richiesta_admin: ShieldAlert, transazione: Wallet };
-const COLORI = { scadenza: C.amber, turno: C.sky, evento: C.violet, figlio: C.orange, richiesta_admin: C.purple, transazione: C.green };
+const ICONE = { scadenza: Receipt, turno: Clock, evento: CalendarPlus, figlio: Baby, richiesta_admin: ShieldAlert };
+const COLORI = { scadenza: C.amber, turno: C.sky, evento: C.violet, figlio: C.orange, richiesta_admin: C.purple };
 
 export default function NotificationsSheet({ userId, onClose, onChanged }) {
   const navigate = useNavigate();
@@ -15,31 +15,32 @@ export default function NotificationsSheet({ userId, onClose, onChanged }) {
 
   const load = React.useCallback(() => {
     setLoading(true);
-    supabase.from("notifications").select("*").eq("recipient_user_id", userId).eq("read", false).order("created_at", { ascending: false }).limit(50)
+    supabase.from("notifications").select("*").eq("recipient_user_id", userId).order("created_at", { ascending: false }).limit(50)
       .then(({ data }) => { setNotifiche(data || []); setLoading(false); });
   }, [userId]);
 
   useEffect(() => { load(); }, [load]);
 
   const handleTap = async (n) => {
-    await supabase.from("notifications").update({ read: true }).eq("id", n.id);
-    setNotifiche((prev) => prev.filter((x) => x.id !== n.id));
-    onChanged?.();
+    if (!n.read) {
+      await supabase.from("notifications").update({ read: true }).eq("id", n.id);
+      onChanged?.();
+    }
     onClose();
     if (n.navigate_to) navigate(n.navigate_to);
   };
 
   const handleSegnaTutteLette = async () => {
-    const idsNonLette = notifiche.map((n) => n.id);
+    const idsNonLette = notifiche.filter((n) => !n.read).map((n) => n.id);
     if (idsNonLette.length === 0) return;
     await supabase.from("notifications").update({ read: true }).in("id", idsNonLette);
-    setNotifiche([]);
     onChanged?.();
+    load();
   };
 
   return (
     <Sheet onClose={onClose} title="Notifiche" right={
-      notifiche.length > 0 ? (
+      notifiche.some((n) => !n.read) ? (
         <button onClick={handleSegnaTutteLette} className="text-xs font-medium" style={{ color: C.purple, background: "none", border: "none" }}>
           Segna tutte lette
         </button>
@@ -64,7 +65,7 @@ export default function NotificationsSheet({ userId, onClose, onChanged }) {
           const colore = COLORI[n.entity_type] || C.violet;
           return (
             <button key={n.id} onClick={() => handleTap(n)} className="w-full flex items-start gap-3 text-left" style={{
-              backgroundColor: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 10,
+              backgroundColor: n.read ? "transparent" : C.panel, border: `1px solid ${n.read ? "transparent" : C.border}`, borderRadius: 12, padding: 10, opacity: n.read ? 0.55 : 1,
             }}>
               <div style={{ width: 30, height: 30, borderRadius: 9999, backgroundColor: `${colore}22`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Icon size={14} style={{ color: colore }} />
@@ -73,7 +74,7 @@ export default function NotificationsSheet({ userId, onClose, onChanged }) {
                 <div className="text-sm truncate" style={{ color: C.text }}>{n.title}</div>
                 <div className="text-xs" style={{ color: C.muted }}>{n.body}</div>
               </div>
-              <div style={{ width: 7, height: 7, borderRadius: 9999, backgroundColor: colore, flexShrink: 0, marginTop: 6 }} />
+              {!n.read && <div style={{ width: 7, height: 7, borderRadius: 9999, backgroundColor: colore, flexShrink: 0, marginTop: 6 }} />}
             </button>
           );
         })}

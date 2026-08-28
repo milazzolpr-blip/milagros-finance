@@ -8,9 +8,6 @@ import ScadenzaSheet from "../components/ScadenzaSheet";
 import EventoGenericoSheet from "../components/EventoGenericoSheet";
 import TurnoSheet from "../components/TurnoSheet";
 import AttivitaFiglioSheet from "../components/AttivitaFiglioSheet";
-
-const COLORE_PER_TIPO = { scadenza: C.amber, turno: C.sky, figlio: C.orange, evento: C.violet };
-
 import TransactionModal from "../components/TransactionModal";
 import AddMenuSheet from "../components/AddMenuSheet";
 
@@ -226,7 +223,7 @@ export default function CalendarioPage() {
             const d = new Date(g + "T00:00:00");
             const active = g === selectedDate;
             const isOggi = g === oggi;
-            const tipiDelGiorno = [...new Set(eventiPerGiorno(g).map((e) => e.tipo))];
+            const haEventi = eventiPerGiorno(g).length > 0;
             return (
               <button key={g} onClick={() => setSelectedDate(g)} className="flex-1 flex flex-col items-center gap-1" style={{
                 padding: "8px 2px", borderRadius: 12,
@@ -235,9 +232,7 @@ export default function CalendarioPage() {
               }}>
                 <span style={{ fontSize: 9, color: active ? "#0a0b0f" : C.muted, fontWeight: 600 }}>{GIORNI_SETTIMANA[d.getDay()]}</span>
                 <span style={{ fontSize: 14, color: active ? "#0a0b0f" : C.text, fontWeight: 700 }}>{d.getDate()}</span>
-                <div className="flex gap-0.5" style={{ minHeight: 4 }}>
-                  {tipiDelGiorno.slice(0, 4).map((t) => <div key={t} style={{ width: 4, height: 4, borderRadius: 9999, backgroundColor: active ? "#0a0b0f" : COLORE_PER_TIPO[t] }} />)}
-                </div>
+                <div style={{ width: 4, height: 4, borderRadius: 9999, backgroundColor: haEventi ? (active ? "#0a0b0f" : C.violet) : "transparent" }} />
               </button>
             );
           })}
@@ -267,7 +262,7 @@ export default function CalendarioPage() {
               const active = g === selectedDate;
               const isOggi = g === oggi;
               const fuoriMese = d.getMonth() !== meseGrid.meseCorrente;
-              const tipiDelGiorno = [...new Set(eventiPerGiorno(g).map((e) => e.tipo))];
+              const haEventi = eventiPerGiorno(g).length > 0;
               return (
                 <button key={g} onClick={() => setSelectedDate(g)} className="flex flex-col items-center justify-center gap-0.5" style={{
                   aspectRatio: "1", borderRadius: 9,
@@ -276,9 +271,7 @@ export default function CalendarioPage() {
                   opacity: fuoriMese ? 0.35 : 1,
                 }}>
                   <span style={{ fontSize: 11, color: active ? "#0a0b0f" : C.text, fontWeight: isOggi ? 700 : 500 }}>{d.getDate()}</span>
-                  <div className="flex gap-0.5" style={{ minHeight: 3.5 }}>
-                    {tipiDelGiorno.slice(0, 3).map((t) => <div key={t} style={{ width: 3.5, height: 3.5, borderRadius: 9999, backgroundColor: active ? "#0a0b0f" : COLORE_PER_TIPO[t] }} />)}
-                  </div>
+                  <div style={{ width: 3.5, height: 3.5, borderRadius: 9999, backgroundColor: haEventi ? (active ? "#0a0b0f" : C.violet) : "transparent" }} />
                 </button>
               );
             })}
