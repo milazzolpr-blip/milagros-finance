@@ -12,7 +12,7 @@ function dataLabel(dateStr) {
   return `${GIORNI[d.getDay()].slice(0, 3)} ${d.getDate()} ${MESI[d.getMonth() + 1]}`;
 }
 
-export default function ScadenzePage() {
+export default function ScadenzePage({ inline }) {
   const { workspace, member, bumpRefresh, isReader, showToast } = useOutletContext();
   const navigate = useNavigate();
   const [scadenze, setScadenze] = useState([]);
@@ -71,13 +71,18 @@ export default function ScadenzePage() {
       return;
     }
 
-    await supabase.from("scadenze").update({
+    const { error: updError } = await supabase.from("scadenze").update({
       stato: "pagato",
       data_pagamento: oggi,
       transaction_id: tx.id,
     }).eq("id", scadenza.id);
 
     setPayingId(null);
+    if (updError) {
+      showToast("La transazione è stata creata, ma il collegamento con la scadenza è fallito: " + updError.message, "error");
+      load();
+      return;
+    }
     showToast("Pagamento registrato in Finanza");
     load();
     bumpRefresh?.();
@@ -91,11 +96,15 @@ export default function ScadenzePage() {
 
   return (
     <div>
-      <button onClick={() => navigate("/app")} className="flex items-center gap-1 text-xs font-medium mb-4" style={{ color: C.muted, background: "none", border: "none" }}>
-        <ArrowLeft size={14} /> Torna alla Home
-      </button>
-      <div style={{ fontSize: 11, letterSpacing: "0.08em", color: C.muted, fontWeight: 600, marginBottom: 4 }} className="uppercase">Attività</div>
-      <h1 className="font-bold mb-5" style={{ fontSize: 26 }}>Scadenze & Adempimenti</h1>
+      {!inline && (
+        <>
+          <button onClick={() => navigate("/app")} className="flex items-center gap-1 text-xs font-medium mb-4" style={{ color: C.muted, background: "none", border: "none" }}>
+            <ArrowLeft size={14} /> Torna alla Home
+          </button>
+          <div style={{ fontSize: 11, letterSpacing: "0.08em", color: C.muted, fontWeight: 600, marginBottom: 4 }} className="uppercase">Attività</div>
+          <h1 className="font-bold mb-5" style={{ fontSize: 26 }}>Scadenze & Adempimenti</h1>
+        </>
+      )}
 
       <div className="flex gap-2 mb-4">
         {[{ k: "da_pagare", l: "Da pagare" }, { k: "pagate", l: "Pagate" }, { k: "tutte", l: "Tutte" }].map((f) => {
