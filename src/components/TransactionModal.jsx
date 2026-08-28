@@ -37,6 +37,8 @@ export default function TransactionModal({ workspace, member, existing, defaultD
   const [importo, setImporto] = useState(existing ? String(existing.importo) : "");
   const [personaId, setPersonaId] = useState(existing?.member_id || member?.id || null);
   const [descrizione, setDescrizione] = useState(existing?.voce || "");
+  const [storicoVoci, setStoricoVoci] = useState([]);
+  const [suggerimentiAperti, setSuggerimentiAperti] = useState(false);
   const [categoriaSel, setCategoriaSel] = useState(
     existing?.macro_categoria ? { macro: existing.macro_categoria, micro: existing.micro_categoria || null, color: FALLBACK_COLOR } : null
   );
@@ -65,7 +67,7 @@ export default function TransactionModal({ workspace, member, existing, defaultD
       const [{ data: mem }, { data: cats }, { data: recentTx }, { data: caps }] = await Promise.all([
         supabase.from("workspace_members").select("id, display_name, colore").eq("workspace_id", workspace.id).eq("status", "active"),
         supabase.from("category_mappings").select("macro_categoria, micro_categoria, color").eq("workspace_id", workspace.id),
-        supabase.from("transactions").select("macro_categoria, micro_categoria").eq("workspace_id", workspace.id).eq("tipo", "uscita").order("date", { ascending: false }).limit(60),
+        supabase.from("transactions").select("voce, macro_categoria, micro_categoria").eq("workspace_id", workspace.id).eq("tipo", "uscita").order("date", { ascending: false }).limit(200),
         supabase.from("capitoli_spesa").select("id, nome, colore, icona").eq("workspace_id", workspace.id).order("data_inizio", { ascending: false }),
       ]);
       if (cancelled) return;
@@ -88,11 +90,19 @@ export default function TransactionModal({ workspace, member, existing, defaultD
       }
 
       const freq = {};
+      const vociVisteMap = new Map(); // voce (minuscolo) -> { voce originale, macro, micro }
       (recentTx || []).forEach((t) => {
         if (!t.macro_categoria) return;
         const key = `${t.macro_categoria}|||${t.micro_categoria || ""}`;
         freq[key] = (freq[key] || 0) + 1;
+        if (t.voce) {
+          const chiave = t.voce.trim().toLowerCase();
+          if (chiave && !vociVisteMap.has(chiave)) {
+            vociVisteMap.set(chiave, { voce: t.voce.trim(), macro: t.macro_categoria, micro: t.micro_categoria || null });
+          }
+        }
       });
+      setStoricoVoci(Array.from(vociVisteMap.values()));
       const top = Object.entries(freq)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
@@ -118,6 +128,14 @@ export default function TransactionModal({ workspace, member, existing, defaultD
     });
     return () => { cancelled = true; };
   }, [receiptPath]);
+
+  const suggerimentiVoce = useMemo(() => {
+    const query = descrizione.trim().toLowerCase();
+    if (!query) return [];
+    const perPrefisso = storicoVoci.filter((v) => v.voce.toLowerCase().startsWith(query) && v.voce.toLowerCase() !== query);
+    const perContenuto = storicoVoci.filter((v) => !v.voce.toLowerCase().startsWith(query) && v.voce.toLowerCase().includes(query));
+    return [...perPrefisso, ...perContenuto].slice(0, 5);
+  }, [descrizione, storicoVoci]);
 
   const categorieFiltrate = useMemo(() => {
     if (!categoriaQuery) return categorie;
@@ -278,8 +296,33 @@ export default function TransactionModal({ workspace, member, existing, defaultD
         })}
       </div>
 
-      <input value={descrizione} onChange={(e) => setDescrizione(e.target.value)} placeholder="Descrizione (es. Supermercato, Bar...)"
-        style={{ width: "100%", backgroundColor: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", fontSize: 13, color: C.text, outline: "none", marginBottom: 16, boxSizing: "border-box" }} />
+      <div style={{ position: "relative", marginBottom: 16 }}>
+        <input
+          value={descrizione}
+          onChange={(e) => { setDescrizione(e.target.value); setSuggerimentiAperti(true); }}
+          onFocus={() => setSuggerimentiAperti(true)}
+          onBlur={() => setTimeout(() => setSuggerimentiAperti(false), 120)}
+          placeholder="Descrizione (es. Supermercato, Bar...)"
+          style={{ width: "100%", backgroundColor: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", fontSize: 13, color: C.text, outline: "none", boxSizing: "border-box" }} />
+        {suggerimentiAperti && suggerimentiVoce.length > 0 && (
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, backgroundColor: C.panel2, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", zIndex: 5 }}>
+            {suggerimentiVoce.map((v) => (
+              <button key={v.voce} onMouseDown={(e) => {
+                e.preventDefault();
+                setDescrizione(v.voce);
+                if (v.macro) {
+                  const gruppo = categorie.find((g) => g.macro === v.macro);
+                  setCategoriaSel({ macro: v.macro, micro: v.micro, color: gruppo?.color || FALLBACK_COLOR });
+                }
+                setSuggerimentiAperti(false);
+              }} className="w-full flex items-center justify-between text-left" style={{ padding: "9px 14px", background: "none", border: "none", borderBottom: `1px solid ${C.border}` }}>
+                <span className="text-sm truncate" style={{ color: C.text }}>{v.voce}</span>
+                {v.macro && <span className="text-xs truncate flex-shrink-0" style={{ color: C.muted, marginLeft: 8 }}>{v.micro || v.macro}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div style={{ fontSize: 11, letterSpacing: "0.08em", color: C.muted, fontWeight: 600, marginBottom: 8 }} className="uppercase">Categoria</div>
       <div style={{ position: "relative", marginBottom: 16 }}>
