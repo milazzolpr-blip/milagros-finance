@@ -110,7 +110,7 @@ export default function DashboardPage() {
       if (moduli.calendario !== false) {
         jobs.push(
           Promise.all([
-            supabase.from("scadenze").select("id, titolo, data_scadenza, importo, member_id, stato").eq("workspace_id", workspace.id).gte("data_scadenza", oggi).lte("data_scadenza", fineSettimana),
+            supabase.from("scadenze").select("id, titolo, data_scadenza, importo, member_id, stato").eq("workspace_id", workspace.id).eq("stato", "da_pagare").gte("data_scadenza", oggi).lte("data_scadenza", fineSettimana),
             moduli.turni ? supabase.from("turni_assegnati").select("id, data, ora_inizio, ora_fine, modalita, member_id, aziende(nome)").eq("workspace_id", workspace.id).gte("data", oggi).lte("data", fineSettimana) : Promise.resolve({ data: [] }),
             supabase.from("eventi_generici").select("id, titolo, data, ora_inizio, member_ids").eq("workspace_id", workspace.id).gte("data", oggi).lte("data", fineSettimana),
             moduli.figli ? supabase.from("entita_attivita").select("id, titolo, data, ora, chi_accompagna_ids, chi_riprende_ids, entita_familiari(nome)").eq("workspace_id", workspace.id).gte("data", oggi).lte("data", fineSettimana) : Promise.resolve({ data: [] }),
@@ -213,7 +213,7 @@ export default function DashboardPage() {
     async function caricaSettimana() {
       setCaricandoSettimana(true);
       const [scadRes, turniRes, eventiRes, attRes, memRes] = await Promise.all([
-        supabase.from("scadenze").select("id, titolo, data_scadenza, importo, member_id, stato").eq("workspace_id", workspace.id).gte("data_scadenza", settimanaAncora).lte("data_scadenza", fineFinestra),
+        supabase.from("scadenze").select("id, titolo, data_scadenza, importo, member_id, stato").eq("workspace_id", workspace.id).eq("stato", "da_pagare").gte("data_scadenza", settimanaAncora).lte("data_scadenza", fineFinestra),
         moduli.turni ? supabase.from("turni_assegnati").select("id, data, ora_inizio, ora_fine, modalita, member_id, aziende(nome)").eq("workspace_id", workspace.id).gte("data", settimanaAncora).lte("data", fineFinestra) : Promise.resolve({ data: [] }),
         supabase.from("eventi_generici").select("id, titolo, data, ora_inizio, member_ids").eq("workspace_id", workspace.id).gte("data", settimanaAncora).lte("data", fineFinestra),
         moduli.figli ? supabase.from("entita_attivita").select("id, titolo, data, ora, chi_accompagna_ids, chi_riprende_ids, entita_familiari(nome)").eq("workspace_id", workspace.id).gte("data", settimanaAncora).lte("data", fineFinestra) : Promise.resolve({ data: [] }),
