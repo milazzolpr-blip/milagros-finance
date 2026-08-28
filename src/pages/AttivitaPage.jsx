@@ -6,6 +6,7 @@ import { PillTabs, Card, Sheet } from "../components/ui";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
 import AttivitaFiglioSheet from "../components/AttivitaFiglioSheet";
+import ScadenzePage from "./ScadenzePage";
 
 const TIPI_ENTITA = [
   { key: "figlio", label: "Figlio", icona: "🧒" },
@@ -24,11 +25,12 @@ export default function AttivitaPage() {
     ...(moduli.figli ? [{ key: "figli", label: workspace?.nome_modulo_figli || "Figli" }] : []),
     ...(moduli.liste ? [{ key: "liste", label: "Liste" }] : []),
     { key: "luoghi", label: "Luoghi" },
+    ...(moduli.scadenzePagamenti !== false ? [{ key: "scadenze", label: "Scadenze" }] : []),
   ];
 
   useEffect(() => {
     if (!tabOptions.some((t) => t.key === tab) && tabOptions.length) setTab(tabOptions[0].key);
-  }, [moduli.figli, moduli.liste]); // eslint-disable-line
+  }, [moduli.figli, moduli.liste, moduli.scadenzePagamenti]); // eslint-disable-line
 
   if (!workspace) return null;
 
@@ -40,6 +42,7 @@ export default function AttivitaPage() {
       {tab === "figli" && <FigliTab workspace={workspace} isReader={isReader} />}
       {tab === "liste" && <ListeTab workspace={workspace} isReader={isReader} />}
       {tab === "luoghi" && <LuoghiTab workspace={workspace} />}
+      {tab === "scadenze" && <ScadenzePage inline />}
     </div>
   );
 }
