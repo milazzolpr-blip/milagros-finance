@@ -60,29 +60,40 @@ export default function DashboardPage() {
   const [saldoComplessivo, setSaldoComplessivo] = useState(null);
   const [listeCount, setListeCount] = useState(0);
   const [listeAnteprima, setListeAnteprima] = useState([]);
+  const [articoliDaFare, setArticoliDaFare] = useState(0);
   const [scadenzeDaPagare, setScadenzeDaPagare] = useState(0);
-  const [prossimaScadenza, setProssimaScadenza] = useState(null);
+  const [prossimeScadenze, setProssimeScadenze] = useState([]);
   const [turniOggiPerPersona, setTurniOggiPerPersona] = useState([]);
   const [entitaCount, setEntitaCount] = useState(0);
   const [attivitaProssime, setAttivitaProssime] = useState(0);
+  const [prossimeAttivitaFigli, setProssimeAttivitaFigli] = useState([]);
 
   const moduli = workspace?.moduli_attivi || {};
   const oggi = todayLocal();
   const fineSettimana = addGiorni(oggi, 6);
 
   const caricaAnteprimaListe = React.useCallback(async () => {
-    const { data } = await supabase
-      .from("liste_articoli")
-      .select("id, testo, completato, liste!inner(workspace_id, nome)")
-      .eq("liste.workspace_id", workspace.id)
-      .eq("completato", false)
-      .order("created_at", { ascending: false })
-      .limit(3);
+    const [{ data }, { count }] = await Promise.all([
+      supabase
+        .from("liste_articoli")
+        .select("id, testo, completato, liste!inner(workspace_id, nome)")
+        .eq("liste.workspace_id", workspace.id)
+        .eq("completato", false)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      supabase
+        .from("liste_articoli")
+        .select("id, liste!inner(workspace_id)", { count: "exact", head: true })
+        .eq("liste.workspace_id", workspace.id)
+        .eq("completato", false),
+    ]);
     setListeAnteprima(data || []);
+    setArticoliDaFare(count || 0);
   }, [workspace]);
 
   const toggleAnteprimaArticolo = async (id) => {
     setListeAnteprima((prev) => prev.filter((a) => a.id !== id));
+    setArticoliDaFare((prev) => Math.max(0, prev - 1));
     const { error } = await supabase.from("liste_articoli").update({ completato: true }).eq("id", id);
     if (error) caricaAnteprimaListe();
   };
@@ -168,11 +179,11 @@ export default function DashboardPage() {
         jobs.push(
           Promise.all([
             supabase.from("scadenze").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id).eq("stato", "da_pagare"),
-            supabase.from("scadenze").select("titolo, data_scadenza, importo, member_id, workspace_members(display_name)").eq("workspace_id", workspace.id).eq("stato", "da_pagare").order("data_scadenza", { ascending: true }).limit(1),
+            supabase.from("scadenze").select("id, titolo, data_scadenza, importo, member_id, workspace_members(display_name)").eq("workspace_id", workspace.id).eq("stato", "da_pagare").order("data_scadenza", { ascending: true }).limit(5),
           ]).then(([countRes, nextRes]) => {
             if (cancelled) return;
             setScadenzeDaPagare(countRes.count || 0);
-            setProssimaScadenza(nextRes.data?.[0] || null);
+            setProssimeScadenze(nextRes.data || []);
           })
         );
       }
@@ -181,7 +192,8 @@ export default function DashboardPage() {
           Promise.all([
             supabase.from("entita_familiari").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id),
             supabase.from("entita_attivita").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id).gte("data", oggi),
-          ]).then(([e, a]) => { if (!cancelled) { setEntitaCount(e.count || 0); setAttivitaProssime(a.count || 0); } })
+            supabase.from("entita_attivita").select("id, titolo, data, ora, entita_familiari(nome)").eq("workspace_id", workspace.id).gte("data", oggi).order("data", { ascending: true }).order("ora", { ascending: true }).limit(5),
+          ]).then(([e, a, lista]) => { if (!cancelled) { setEntitaCount(e.count || 0); setAttivitaProssime(a.count || 0); setProssimeAttivitaFigli(lista.data || []); } })
         );
       }
 
@@ -392,8 +404,20 @@ export default function DashboardPage() {
                   <MiniCardHeader icon={Baby} color={C.orange} label={workspace.nome_modulo_figli || "Figli"} />
                   {entitaCount === 0 ? (
                     <div className="text-xs" style={{ color: C.muted, fontStyle: "italic" }}>Nessuno aggiunto ancora</div>
+                  ) : prossimeAttivitaFigli.length === 0 ? (
+                    <div className="text-xs" style={{ color: C.muted, fontStyle: "italic" }}>Nessuna attività in programma</div>
                   ) : (
-                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{attivitaProssime} attività in programma</div>
+                    <div className="w-full">
+                      {prossimeAttivitaFigli.map((a) => (
+                        <div key={a.id} className="flex justify-between gap-2 text-xs" style={{ padding: "3px 0" }}>
+                          <span className="truncate" style={{ color: C.text }}>{a.entita_familiari?.nome ? `${a.entita_familiari.nome} · ` : ""}{a.titolo}</span>
+                          <span style={{ color: C.muted, flexShrink: 0 }}>{a.data === oggi ? "Oggi" : a.data.slice(8, 10) + "/" + a.data.slice(5, 7)}</span>
+                        </div>
+                      ))}
+                      {attivitaProssime > prossimeAttivitaFigli.length && (
+                        <div className="text-xs font-medium" style={{ color: C.orange, marginTop: 4 }}>Vedi tutte ({attivitaProssime}) →</div>
+                      )}
+                    </div>
                   )}
                 </button>
               )}
@@ -401,14 +425,20 @@ export default function DashboardPage() {
               {moduli.scadenzePagamenti !== false && (
                 <button onClick={() => navigate("/app/scadenze")} className="text-left" style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "flex-start", backgroundColor: C.panel, border: `1px solid ${C.border}`, borderRadius: 18, padding: 16 }}>
                   <MiniCardHeader icon={Receipt} color={C.amber} label="Scadenze" />
-                  <div style={{ fontSize: 15, fontWeight: 700, color: C.text }} className="truncate">{prossimaScadenza ? prossimaScadenza.titolo : "Tutto in regola"}</div>
-                  {prossimaScadenza ? (
-                    <div className="text-xs truncate" style={{ color: C.muted, marginTop: 1 }}>
-                      {[prossimaScadenza.data_scadenza === oggi ? "Oggi" : prossimaScadenza.data_scadenza, prossimaScadenza.importo != null ? euroPlain(prossimaScadenza.importo) : null].filter(Boolean).join(" · ")}
-                      {scadenzeDaPagare > 1 && ` · +${scadenzeDaPagare - 1}`}
-                    </div>
+                  {prossimeScadenze.length === 0 ? (
+                    <div className="text-xs" style={{ color: C.muted, fontStyle: "italic" }}>Nessuna scadenza in sospeso</div>
                   ) : (
-                    <div className="text-xs" style={{ color: C.muted, fontStyle: "italic", marginTop: 2 }}>Nessuna scadenza in sospeso</div>
+                    <div className="w-full">
+                      {prossimeScadenze.map((s) => (
+                        <div key={s.id} className="flex justify-between gap-2 text-xs" style={{ padding: "3px 0" }}>
+                          <span className="truncate" style={{ color: C.text }}>{s.titolo}</span>
+                          <span style={{ color: C.muted, flexShrink: 0 }}>{s.importo != null ? euroPlain(s.importo) : (s.data_scadenza === oggi ? "Oggi" : s.data_scadenza.slice(8, 10) + "/" + s.data_scadenza.slice(5, 7))}</span>
+                        </div>
+                      ))}
+                      {scadenzeDaPagare > prossimeScadenze.length && (
+                        <div className="text-xs font-medium" style={{ color: C.amber, marginTop: 4 }}>Vedi tutte ({scadenzeDaPagare}) →</div>
+                      )}
+                    </div>
                   )}
                 </button>
               )}
@@ -433,6 +463,9 @@ export default function DashboardPage() {
                     </div>
                   ))}
                 </div>
+              )}
+              {articoliDaFare > listeAnteprima.length && (
+                <div className="text-xs font-medium" style={{ color: C.fuchsia, marginTop: 4 }}>Vedi tutte ({articoliDaFare}) →</div>
               )}
             </SectionCard>
           )}
