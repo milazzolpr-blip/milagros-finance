@@ -1,18 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ChevronRight, X, CalendarDays, Trash2 } from "lucide-react";
+import { ChevronRight, X, CalendarDays } from "lucide-react";
 import { C, todayLocal } from "../theme";
 import { Sheet } from "./ui";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
 
-export default function ScadenzaSheet({ workspace, existing, defaultDate, onClose, onSaved, onDeleted }) {
+export default function ScadenzaSheet({ workspace, existing, defaultDate, onClose, onSaved }) {
   const showToast = useToast();
   const isEdit = !!existing;
   const [members, setMembers] = useState([]);
   const [categorie, setCategorie] = useState([]);
   const [loadingRefs, setLoadingRefs] = useState(true);
-  const [deleting, setDeleting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const [titolo, setTitolo] = useState(existing?.titolo || "");
   const [importo, setImporto] = useState(existing ? String(existing.importo ?? "") : "");
@@ -86,17 +84,6 @@ export default function ScadenzaSheet({ workspace, existing, defaultDate, onClos
     if (result.error) { setError(result.error.message); return; }
     showToast(isEdit ? "Scadenza aggiornata" : "Scadenza creata");
     onSaved();
-  };
-
-  const handleDelete = async () => {
-    if (!confirmDelete) { setConfirmDelete(true); return; }
-    setDeleting(true);
-    setError("");
-    const { error: delError } = await supabase.from("scadenze").delete().eq("id", existing.id);
-    setDeleting(false);
-    if (delError) { setError(delError.message); return; }
-    showToast("Scadenza eliminata");
-    onDeleted ? onDeleted() : onSaved();
   };
 
   return (
@@ -204,23 +191,6 @@ export default function ScadenzaSheet({ workspace, existing, defaultDate, onClos
         style={{ padding: "14px 0", borderRadius: 14, fontSize: 14, backgroundColor: valido ? C.purple : C.panel, color: valido ? "#0a0b0f" : C.muted, opacity: (valido && !saving) ? 1 : 0.6, border: "none" }}>
         {saving ? "Salvataggio..." : isEdit ? "Salva modifiche" : "Crea scadenza"}
       </button>
-
-      {isEdit && (
-        <>
-          {existing.transaction_id && !confirmDelete && (
-            <div className="text-xs mt-3" style={{ color: C.muted, fontStyle: "italic" }}>
-              È già collegata a una transazione registrata in Finanza — eliminando la scadenza, la transazione resterà comunque lì.
-            </div>
-          )}
-          <button onClick={handleDelete} disabled={deleting} className="w-full flex items-center justify-center gap-2 font-medium" style={{
-            padding: "12px 0", borderRadius: 14, fontSize: 13, marginTop: 12,
-            backgroundColor: confirmDelete ? C.red : "transparent", color: confirmDelete ? "#0a0b0f" : C.red, border: confirmDelete ? "none" : `1px solid ${C.red}`,
-          }}>
-            <Trash2 size={14} />
-            {deleting ? "Eliminazione..." : confirmDelete ? "Conferma eliminazione" : "Elimina scadenza"}
-          </button>
-        </>
-      )}
     </Sheet>
   );
 }

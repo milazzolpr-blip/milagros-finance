@@ -312,7 +312,7 @@ export default function StoricoPage() {
 
           {tab === "tabella" && (
             <Card>
-              <div className="grid uppercase font-semibold" style={{ gridTemplateColumns: "1.2fr 1fr 1fr 1fr", gap: 4, fontSize: 9, color: C.muted, marginBottom: 8 }}>
+              <div className="grid" style={{ gridTemplateColumns: "1.2fr 1fr 1fr 1fr", gap: 4, fontSize: 9, color: C.muted, marginBottom: 8 }} className="uppercase font-semibold">
                 <span>Mese</span><span style={{ textAlign: "right" }}>Entrate</span><span style={{ textAlign: "right" }}>Uscite</span><span style={{ textAlign: "right" }}>Saldo</span>
               </div>
               {perMese.slice().reverse().map((m) => {

@@ -71,18 +71,13 @@ export default function ScadenzePage({ inline }) {
       return;
     }
 
-    const { error: updError } = await supabase.from("scadenze").update({
+    await supabase.from("scadenze").update({
       stato: "pagato",
       data_pagamento: oggi,
       transaction_id: tx.id,
     }).eq("id", scadenza.id);
 
     setPayingId(null);
-    if (updError) {
-      showToast("La transazione è stata creata, ma il collegamento con la scadenza è fallito: " + updError.message, "error");
-      load();
-      return;
-    }
     showToast("Pagamento registrato in Finanza");
     load();
     bumpRefresh?.();
@@ -162,7 +157,7 @@ export default function ScadenzePage({ inline }) {
         </button>
       )}
 
-      {editing && <ScadenzaSheet workspace={workspace} existing={editing} onClose={() => setEditing(null)} onSaved={handleSaved} onDeleted={handleSaved} />}
+      {editing && <ScadenzaSheet workspace={workspace} existing={editing} onClose={() => setEditing(null)} onSaved={handleSaved} />}
       {showNuova && <ScadenzaSheet workspace={workspace} onClose={() => setShowNuova(false)} onSaved={handleSaved} />}
     </div>
   );
