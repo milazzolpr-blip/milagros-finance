@@ -121,7 +121,7 @@ export default function DashboardPage() {
 
             const tuttiConAutore = [
               ...(scadRes.data || []).map((s) => ({ tipo: "scadenze", data: s.data_scadenza, ora: "", titolo: s.titolo, sotto: [membriById[s.member_id]?.display_name, s.importo != null ? euroPlain(s.importo) : null].filter(Boolean).join(" · "), autori: [s.member_id].filter(Boolean) })),
-              ...(turniRes.data || []).map((t) => ({ tipo: "turni", data: t.data, ora: t.ora_inizio?.slice(0, 5) || "", titolo: t.modalita === "ferie" ? "Ferie" : `Turno ${t.ora_inizio?.slice(0, 5)}–${t.ora_fine?.slice(0, 5)}`, sotto: [membriById[t.member_id]?.display_name, t.modalita === "smart" ? "Smart working" : t.modalita === "ferie" ? null : t.aziende?.nome].filter(Boolean).join(" · "), autori: [t.member_id].filter(Boolean) })),
+              ...(turniRes.data || []).map((t) => ({ tipo: "turni", data: t.data, ora: t.ora_inizio?.slice(0, 5), titolo: `Turno ${t.ora_inizio?.slice(0, 5)}–${t.ora_fine?.slice(0, 5)}`, sotto: [membriById[t.member_id]?.display_name, t.modalita === "smart" ? "Smart working" : t.aziende?.nome].filter(Boolean).join(" · "), autori: [t.member_id].filter(Boolean) })),
               ...(eventiRes.data || []).map((e) => ({ tipo: "calendario", data: e.data, ora: e.ora_inizio?.slice(0, 5) || "", titolo: e.titolo, sotto: (e.member_ids || []).map((id) => membriById[id]?.display_name).filter(Boolean).join(", "), autori: e.member_ids || [] })),
               ...(attRes.data || []).map((a) => ({ tipo: "figli", data: a.data, ora: a.ora?.slice(0, 5) || "", titolo: a.titolo, sotto: a.entita_familiari?.nome || "", autori: [...(a.chi_accompagna_ids || []), ...(a.chi_riprende_ids || [])] })),
             ];
@@ -224,7 +224,7 @@ export default function DashboardPage() {
       const membriById = Object.fromEntries((memRes.data || []).map((m) => [m.id, m]));
       const tuttiConAutore = [
         ...(scadRes.data || []).map((s) => ({ tipo: "scadenze", data: s.data_scadenza, ora: "", titolo: s.titolo, sotto: [membriById[s.member_id]?.display_name, s.importo != null ? euroPlain(s.importo) : null].filter(Boolean).join(" · "), autori: [s.member_id].filter(Boolean) })),
-        ...(turniRes.data || []).map((t) => ({ tipo: "turni", data: t.data, ora: t.ora_inizio?.slice(0, 5) || "", titolo: t.modalita === "ferie" ? "Ferie" : `Turno ${t.ora_inizio?.slice(0, 5)}–${t.ora_fine?.slice(0, 5)}`, sotto: [membriById[t.member_id]?.display_name, t.modalita === "smart" ? "Smart working" : t.modalita === "ferie" ? null : t.aziende?.nome].filter(Boolean).join(" · "), autori: [t.member_id].filter(Boolean) })),
+        ...(turniRes.data || []).map((t) => ({ tipo: "turni", data: t.data, ora: t.ora_inizio?.slice(0, 5), titolo: `Turno ${t.ora_inizio?.slice(0, 5)}–${t.ora_fine?.slice(0, 5)}`, sotto: [membriById[t.member_id]?.display_name, t.modalita === "smart" ? "Smart working" : t.aziende?.nome].filter(Boolean).join(" · "), autori: [t.member_id].filter(Boolean) })),
         ...(eventiRes.data || []).map((e) => ({ tipo: "calendario", data: e.data, ora: e.ora_inizio?.slice(0, 5) || "", titolo: e.titolo, sotto: (e.member_ids || []).map((id) => membriById[id]?.display_name).filter(Boolean).join(", "), autori: e.member_ids || [] })),
         ...(attRes.data || []).map((a) => ({ tipo: "figli", data: a.data, ora: a.ora?.slice(0, 5) || "", titolo: a.titolo, sotto: a.entita_familiari?.nome || "", autori: [...(a.chi_accompagna_ids || []), ...(a.chi_riprende_ids || [])] })),
       ];
@@ -385,9 +385,7 @@ export default function DashboardPage() {
                           <span className="text-sm font-medium truncate" style={{ color: C.text }}>{p.nome}</span>
                         </div>
                         {p.turno ? (
-                          <div className="text-sm font-bold" style={{ color: p.turno.modalita === "ferie" ? C.amber : C.text, fontFamily: "monospace" }}>
-                            {p.turno.modalita === "ferie" ? "Ferie" : `${p.turno.ora_inizio?.slice(0, 5)} – ${p.turno.ora_fine?.slice(0, 5)}`}
-                          </div>
+                          <div className="text-sm font-bold" style={{ color: C.text, fontFamily: "monospace" }}>{p.turno.ora_inizio?.slice(0, 5)} – {p.turno.ora_fine?.slice(0, 5)}</div>
                         ) : (
                           <div className="text-xs" style={{ color: C.muted, fontStyle: "italic" }}>Libero</div>
                         )}

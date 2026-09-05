@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { C, euro, euroPlain } from "../theme";
-import { Sheet, Card, PillTabs } from "./ui";
+import { Sheet, Card } from "./ui";
 import { supabase } from "../lib/supabase";
 import TransactionModal from "./TransactionModal";
 
@@ -37,8 +37,6 @@ export default function CapitoloDetailSheet({ capitolo, workspace, members, onCl
   const [transazioni, setTransazioni] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
-  const [filtroPersona, setFiltroPersona] = useState("tutti");
-  const [filtroCategoria, setFiltroCategoria] = useState("tutte");
 
   const load = React.useCallback(() => {
     setLoading(true);
@@ -63,18 +61,8 @@ export default function CapitoloDetailSheet({ capitolo, workspace, members, onCl
   };
 
   const memberById = Object.fromEntries(members.map((m) => [m.id, m]));
-
-  const categorieDisponibili = [...new Set(transazioni.map((t) => t.macro_categoria).filter(Boolean))].sort();
-  const personeDisponibili = [...new Set(transazioni.map((t) => t.member_id).filter(Boolean))];
-
-  const filtrate = transazioni.filter((t) => {
-    if (filtroPersona !== "tutti" && t.member_id !== filtroPersona) return false;
-    if (filtroCategoria !== "tutte" && t.macro_categoria !== filtroCategoria) return false;
-    return true;
-  });
-
-  const totale = filtrate.reduce((s, t) => s + (t.tipo === "uscita" ? -Number(t.importo) : Number(t.importo)), 0);
-  const duplicatiFlagged = detectPossibleDuplicates(filtrate);
+  const totale = transazioni.reduce((s, t) => s + (t.tipo === "uscita" ? -Number(t.importo) : Number(t.importo)), 0);
+  const duplicatiFlagged = detectPossibleDuplicates(transazioni);
   const numCoppieDoppioni = duplicatiFlagged.size; // conteggio voci coinvolte, non coppie esatte
 
   return (
@@ -93,37 +81,10 @@ export default function CapitoloDetailSheet({ capitolo, workspace, members, onCl
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontSize: 11, color: C.muted }} className="uppercase">Voci</div>
-                <div className="font-semibold" style={{ fontSize: 16, color: C.text }}>{filtrate.length}</div>
+                <div className="font-semibold" style={{ fontSize: 16, color: C.text }}>{transazioni.length}</div>
               </div>
             </div>
           </Card>
-
-          {(personeDisponibili.length > 1 || categorieDisponibili.length > 1) && (
-            <div className="mb-4">
-              {personeDisponibili.length > 1 && (
-                <div className="mb-2">
-                  <PillTabs
-                    options={[{ key: "tutti", label: "Tutti" }, ...personeDisponibili.map((id) => ({ key: id, label: memberById[id]?.display_name || "?", color: memberById[id]?.colore }))]}
-                    value={filtroPersona} onChange={setFiltroPersona}
-                  />
-                </div>
-              )}
-              {categorieDisponibili.length > 1 && (
-                <div className="flex gap-2" style={{ flexWrap: "wrap" }}>
-                  <button onClick={() => setFiltroCategoria("tutte")} className="font-medium" style={{
-                    padding: "6px 12px", borderRadius: 9999, fontSize: 11,
-                    backgroundColor: filtroCategoria === "tutte" ? C.violet : C.panel, color: filtroCategoria === "tutte" ? "#0a0b0f" : C.muted, border: `1px solid ${filtroCategoria === "tutte" ? C.violet : C.border}`,
-                  }}>Tutte le categorie</button>
-                  {categorieDisponibili.map((cat) => (
-                    <button key={cat} onClick={() => setFiltroCategoria(cat)} className="font-medium" style={{
-                      padding: "6px 12px", borderRadius: 9999, fontSize: 11,
-                      backgroundColor: filtroCategoria === cat ? C.violet : C.panel, color: filtroCategoria === cat ? "#0a0b0f" : C.muted, border: `1px solid ${filtroCategoria === cat ? C.violet : C.border}`,
-                    }}>{cat}</button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           {numCoppieDoppioni > 0 && (
             <div className="flex items-center gap-2 mb-4" style={{ backgroundColor: "rgba(251,191,36,0.12)", border: `1px solid ${C.amber}`, borderRadius: 12, padding: "10px 12px" }}>
@@ -134,14 +95,12 @@ export default function CapitoloDetailSheet({ capitolo, workspace, members, onCl
             </div>
           )}
 
-          {filtrate.length === 0 && (
-            <div style={{ color: C.muted, fontSize: 13, textAlign: "center", padding: "24px 0" }}>
-              {transazioni.length === 0 ? "Nessuna transazione associata a questo capitolo ancora." : "Nessuna transazione corrisponde a questo filtro."}
-            </div>
+          {transazioni.length === 0 && (
+            <div style={{ color: C.muted, fontSize: 13, textAlign: "center", padding: "24px 0" }}>Nessuna transazione associata a questo capitolo ancora.</div>
           )}
 
           <div className="space-y-2.5">
-            {filtrate.map((t) => {
+            {transazioni.map((t) => {
               const isDup = duplicatiFlagged.has(t.id);
               const member = memberById[t.member_id];
               return (

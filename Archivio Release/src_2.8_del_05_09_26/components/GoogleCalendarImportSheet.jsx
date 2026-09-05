@@ -14,18 +14,6 @@ function addGiorni(iso, n) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-// Converte una data/ora ISO (Google può restituirla in UTC con "Z" oppure già con
-// l'offset del fuso orario) nella data e nell'ora locali corrette — mai tagliando
-// il testo grezzo, che darebbe l'ora sbagliata se la stringa è in UTC.
-function dataOraLocale(dateTimeIso) {
-  const d = new Date(dateTimeIso);
-  const pad = (n) => String(n).padStart(2, "0");
-  return {
-    data: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-    ora: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
-  };
-}
-
 function caricaScriptGoogle() {
   return new Promise((resolve, reject) => {
     if (window.google?.accounts?.oauth2) { resolve(); return; }
@@ -86,17 +74,9 @@ export default function GoogleCalendarImportSheet({ workspace, member, onClose, 
         .filter((e) => e.status !== "cancelled" && (e.start?.date || e.start?.dateTime))
         .map((e) => {
           const tuttoIlGiorno = !!e.start.date;
-          let dataInizio, oraInizio, oraFine;
-          if (tuttoIlGiorno) {
-            dataInizio = e.start.date;
-            oraInizio = null;
-            oraFine = null;
-          } else {
-            const inizio = dataOraLocale(e.start.dateTime);
-            dataInizio = inizio.data;
-            oraInizio = inizio.ora;
-            oraFine = e.end?.dateTime ? dataOraLocale(e.end.dateTime).ora : null;
-          }
+          const dataInizio = tuttoIlGiorno ? e.start.date : e.start.dateTime.slice(0, 10);
+          const oraInizio = tuttoIlGiorno ? null : e.start.dateTime.slice(11, 16);
+          const oraFine = tuttoIlGiorno ? null : e.end?.dateTime?.slice(11, 16) || null;
           return { id: e.id, titolo: e.summary || "(Senza titolo)", data: dataInizio, ora: oraInizio, oraFine, luogo: e.location || null, tipo: "appuntamento" };
         });
       setEventi(eventiTrovati);

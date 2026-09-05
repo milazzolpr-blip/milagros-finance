@@ -47,7 +47,6 @@ export default function TransactionModal({ workspace, member, existing, defaultD
   const [expandedMacro, setExpandedMacro] = useState(null);
   const [metodo, setMetodo] = useState(existing?.modalita || null);
   const [capitoloId, setCapitoloId] = useState(existing?.capitolo_id || null);
-  const [usaCapitolo, setUsaCapitolo] = useState(!!existing?.capitolo_id);
   const [data, setData] = useState(existing?.date || defaultDate || todayLocal());
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -422,21 +421,25 @@ export default function TransactionModal({ workspace, member, existing, defaultD
 
       {capitoli.length > 0 && (
         <>
-          <label className="flex items-center gap-2 mb-3" style={{ cursor: "pointer" }}>
-            <input type="checkbox" checked={usaCapitolo} onChange={(e) => { setUsaCapitolo(e.target.checked); if (!e.target.checked) setCapitoloId(null); }} />
-            <span className="text-xs" style={{ color: C.muted }}>Fa parte di un capitolo di spesa (es. un viaggio, un progetto)</span>
-          </label>
-          {usaCapitolo && (
-            <div style={{ position: "relative", marginBottom: 16 }}>
-              <select value={capitoloId || ""} onChange={(e) => setCapitoloId(e.target.value || null)}
-                style={{ width: "100%", backgroundColor: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", fontSize: 13, color: C.text, outline: "none", boxSizing: "border-box", appearance: "none" }}>
-                <option value="">Scegli un capitolo...</option>
-                {capitoli.map((c) => (
-                  <option key={c.id} value={c.id}>{c.icona ? `${c.icona} ` : ""}{c.nome}</option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div style={{ fontSize: 11, letterSpacing: "0.08em", color: C.muted, fontWeight: 600, marginBottom: 8 }} className="uppercase">Capitolo di spesa</div>
+          <div className="flex gap-2 mb-4" style={{ flexWrap: "wrap" }}>
+            <button onClick={() => setCapitoloId(null)} className="font-medium" style={{
+              padding: "8px 14px", borderRadius: 12, fontSize: 12,
+              backgroundColor: !capitoloId ? C.panel2 : C.panel, color: !capitoloId ? C.text : C.muted, border: `1px solid ${!capitoloId ? C.text : C.border}`,
+            }}>Nessun capitolo</button>
+            {capitoli.map((c) => {
+              const active = capitoloId === c.id;
+              const colore = c.colore || C.violet;
+              return (
+                <button key={c.id} onClick={() => setCapitoloId(c.id)} className="font-medium" style={{
+                  padding: "8px 14px", borderRadius: 12, fontSize: 12,
+                  backgroundColor: active ? colore : C.panel, color: active ? "#0a0b0f" : C.muted, border: `1px solid ${active ? colore : C.border}`,
+                }}>
+                  {c.icona ? `${c.icona} ` : ""}{c.nome}
+                </button>
+              );
+            })}
+          </div>
         </>
       )}
 

@@ -166,8 +166,8 @@ export default function CalendarioPage() {
             titolo = item.titolo;
             sottotitolo = [memberById[item.member_id]?.display_name, item.importo != null ? euroPlain(item.importo) : null].filter(Boolean).join(" · ");
           } else if (tipo === "turno") {
-            titolo = item.modalita === "ferie" ? "Ferie" : `Turno ${item.ora_inizio?.slice(0, 5)}–${item.ora_fine?.slice(0, 5)}`;
-            sottotitolo = [memberById[item.member_id]?.display_name, item.modalita === "smart" ? "Smart working" : item.modalita === "ferie" ? null : item.aziende?.nome].filter(Boolean).join(" · ");
+            titolo = `Turno ${item.ora_inizio?.slice(0, 5)}–${item.ora_fine?.slice(0, 5)}`;
+            sottotitolo = [memberById[item.member_id]?.display_name, item.modalita === "smart" ? "Smart working" : item.aziende?.nome].filter(Boolean).join(" · ");
           } else if (tipo === "figlio") {
             titolo = item.titolo;
             sottotitolo = [item.entita_familiari?.nome, item.luogo].filter(Boolean).join(" · ");
@@ -295,9 +295,7 @@ export default function CalendarioPage() {
       {apertura?.tipo === "turno" && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 56 }} onClick={() => setApertura(null)}>
           <div style={{ width: "100%", maxWidth: 384, backgroundColor: C.panel2, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 }} onClick={(e) => e.stopPropagation()}>
-            <div className="text-sm mb-3" style={{ color: C.text }}>
-              {apertura.item.modalita === "ferie" ? "Ferie" : `Turno ${apertura.item.ora_inizio?.slice(0, 5)}–${apertura.item.ora_fine?.slice(0, 5)}`}, {memberById[apertura.item.member_id]?.display_name}
-            </div>
+            <div className="text-sm mb-3" style={{ color: C.text }}>Turno {apertura.item.ora_inizio?.slice(0, 5)}–{apertura.item.ora_fine?.slice(0, 5)}, {memberById[apertura.item.member_id]?.display_name}</div>
             {!isReader && (
               <button onClick={async () => { const { error } = await supabase.from("turni_assegnati").delete().eq("id", apertura.item.id); if (error) { showToast("Eliminazione non riuscita: " + error.message, "error"); return; } showToast("Turno eliminato"); setApertura(null); load(); }} className="w-full font-medium" style={{ padding: "12px 0", borderRadius: 14, fontSize: 13, backgroundColor: "transparent", color: C.red, border: `1px solid ${C.red}` }}>
                 Elimina turno

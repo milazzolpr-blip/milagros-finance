@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Clock, Building2, Home as HomeIcon, CalendarDays, ChevronLeft, ChevronRight, Sun } from "lucide-react";
+import { Clock, Building2, Home as HomeIcon, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { C, todayLocal } from "../theme";
 import { Sheet } from "./ui";
 import { supabase } from "../lib/supabase";
@@ -38,15 +38,15 @@ export default function TurnoSheet({ workspace, member, defaultDate, onClose, on
   }, [workspace.id]);
 
   const applicaSuggerito = (s) => {
-    if (s.ora_inizio) setOraInizio(s.ora_inizio.slice(0, 5));
-    if (s.ora_fine) setOraFine(s.ora_fine.slice(0, 5));
+    setOraInizio(s.ora_inizio.slice(0, 5));
+    setOraFine(s.ora_fine.slice(0, 5));
     setModalita(s.modalita);
     setAziendaId(s.azienda_id);
   };
 
   const numeroGiorniIntervallo = Math.max(1, Math.round((new Date(dataFine) - new Date(dataInizio)) / 86400000) + 1);
   const numeroGiorni = modalitaSelezione === "singoli" ? giorniSingoli.size : numeroGiorniIntervallo;
-  const valido = personaId && (modalita === "ferie" || (oraInizio && oraFine)) && (
+  const valido = personaId && oraInizio && oraFine && (
     modalitaSelezione === "intervallo" ? (dataInizio && dataFine && dataFine >= dataInizio) : giorniSingoli.size > 0
   );
 
@@ -104,8 +104,8 @@ export default function TurnoSheet({ workspace, member, defaultDate, onClose, on
       workspace_id: workspace.id,
       member_id: personaId,
       data,
-      ora_inizio: modalita === "ferie" ? null : oraInizio,
-      ora_fine: modalita === "ferie" ? null : oraFine,
+      ora_inizio: oraInizio,
+      ora_fine: oraFine,
       azienda_id: modalita === "sede" ? finalAziendaId : null,
       modalita,
     }));
@@ -115,10 +115,8 @@ export default function TurnoSheet({ workspace, member, defaultDate, onClose, on
 
     notificaAltriMembri({
       workspaceId: workspace.id, escludiUserId: member?.user_id, entityType: "turno",
-      title: `${member?.display_name || "Qualcuno"} ha aggiunto ${rows.length > 1 ? (modalita === "ferie" ? "delle ferie" : "dei turni") : (modalita === "ferie" ? "delle ferie" : "un turno")}`,
-      body: modalita === "ferie"
-        ? (rows.length === 1 ? `${rows[0].data}` : `${rows.length} giorni`)
-        : (rows.length === 1 ? `${rows[0].data} · ${rows[0].ora_inizio?.slice(0, 5)}–${rows[0].ora_fine?.slice(0, 5)}` : `${rows.length} giorni`),
+      title: `${member?.display_name || "Qualcuno"} ha aggiunto ${rows.length > 1 ? "dei turni" : "un turno"}`,
+      body: rows.length === 1 ? `${rows[0].data} · ${rows[0].ora_inizio?.slice(0, 5)}–${rows[0].ora_fine?.slice(0, 5)}` : `${rows.length} giorni`,
       navigateTo: "/app/calendario",
     });
 
@@ -141,7 +139,7 @@ export default function TurnoSheet({ workspace, member, defaultDate, onClose, on
           <div className="flex gap-2 mb-4" style={{ overflowX: "auto" }}>
             {suggeriti.map((s) => (
               <button key={s.id} onClick={() => applicaSuggerito(s)} className="font-medium" style={{ padding: "8px 12px", borderRadius: 10, fontSize: 12, backgroundColor: C.panel, color: C.text, border: `1px solid ${C.border}`, whiteSpace: "nowrap", flexShrink: 0 }}>
-                {s.nome} <span style={{ color: C.muted }}>· {s.ora_inizio ? `${s.ora_inizio.slice(0, 5)}-${s.ora_fine.slice(0, 5)}` : "Ferie"}</span>
+                {s.nome} <span style={{ color: C.muted }}>· {s.ora_inizio.slice(0, 5)}-{s.ora_fine.slice(0, 5)}</span>
               </button>
             ))}
           </div>
@@ -215,7 +213,18 @@ export default function TurnoSheet({ workspace, member, defaultDate, onClose, on
       )}
 
       <div className="flex gap-2 mb-3">
-        {[{ k: "sede", l: "In sede", Icon: Building2 }, { k: "smart", l: "Smart working", Icon: HomeIcon }, { k: "ferie", l: "Ferie", Icon: Sun }].map((m) => {
+        <div className="flex-1 flex items-center gap-2" style={{ backgroundColor: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 12px" }}>
+          <Clock size={14} style={{ color: C.muted }} />
+          <input type="time" value={oraInizio} onChange={(e) => setOraInizio(e.target.value)} style={{ background: "transparent", border: "none", outline: "none", fontSize: 12, color: C.text, width: "100%", colorScheme: "dark" }} />
+        </div>
+        <div className="flex-1 flex items-center gap-2" style={{ backgroundColor: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 12px" }}>
+          <Clock size={14} style={{ color: C.muted }} />
+          <input type="time" value={oraFine} onChange={(e) => setOraFine(e.target.value)} style={{ background: "transparent", border: "none", outline: "none", fontSize: 12, color: C.text, width: "100%", colorScheme: "dark" }} />
+        </div>
+      </div>
+
+      <div className="flex gap-2 mb-3">
+        {[{ k: "sede", l: "In sede", Icon: Building2 }, { k: "smart", l: "Smart working", Icon: HomeIcon }].map((m) => {
           const active = modalita === m.k;
           return (
             <button key={m.k} onClick={() => setModalita(m.k)} className="flex-1 flex items-center justify-center gap-1.5 font-medium" style={{ padding: "10px 0", borderRadius: 12, fontSize: 12, backgroundColor: active ? C.purpleSoft : C.panel, color: active ? C.purple : C.muted, border: `1px solid ${active ? C.purple : C.border}` }}>
@@ -224,19 +233,6 @@ export default function TurnoSheet({ workspace, member, defaultDate, onClose, on
           );
         })}
       </div>
-
-      {modalita !== "ferie" && (
-        <div className="flex gap-2 mb-3">
-          <div className="flex-1 flex items-center gap-2" style={{ backgroundColor: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 12px" }}>
-            <Clock size={14} style={{ color: C.muted }} />
-            <input type="time" value={oraInizio} onChange={(e) => setOraInizio(e.target.value)} style={{ background: "transparent", border: "none", outline: "none", fontSize: 12, color: C.text, width: "100%", colorScheme: "dark" }} />
-          </div>
-          <div className="flex-1 flex items-center gap-2" style={{ backgroundColor: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 12px" }}>
-            <Clock size={14} style={{ color: C.muted }} />
-            <input type="time" value={oraFine} onChange={(e) => setOraFine(e.target.value)} style={{ background: "transparent", border: "none", outline: "none", fontSize: 12, color: C.text, width: "100%", colorScheme: "dark" }} />
-          </div>
-        </div>
-      )}
 
       {modalita === "sede" && (
         <div className="mb-4">

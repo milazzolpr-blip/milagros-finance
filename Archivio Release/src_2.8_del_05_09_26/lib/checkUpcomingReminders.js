@@ -26,7 +26,7 @@ export async function checkUpcomingReminders(workspaceId, userId) {
   const [scadenze, turni, eventi, attivita, esistenti] = await Promise.all([
     supabase.from("scadenze").select("id, titolo, data_scadenza").eq("workspace_id", workspaceId).eq("stato", "da_pagare")
       .gte("data_scadenza", now.toISOString().slice(0, 10)),
-    supabase.from("turni_assegnati").select("id, data, ora_inizio, member_id").eq("workspace_id", workspaceId).neq("modalita", "ferie")
+    supabase.from("turni_assegnati").select("id, data, ora_inizio, member_id").eq("workspace_id", workspaceId)
       .gte("data", now.toISOString().slice(0, 10)),
     supabase.from("eventi_generici").select("id, titolo, data, ora_inizio").eq("workspace_id", workspaceId)
       .gte("data", now.toISOString().slice(0, 10)),
