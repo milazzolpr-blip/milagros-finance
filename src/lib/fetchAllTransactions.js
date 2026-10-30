@@ -17,6 +17,7 @@ export async function fetchAllTransactions(workspaceId, { mese } = {}) {
       .eq("workspace_id", workspaceId)
       .order("date", { ascending: false })
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false }) // tiebreaker: senza di esso la paginazione puo' duplicare/saltare righe
       .range(from, from + PAGE_SIZE - 1);
 
     if (mese) query = query.eq("mese", mese);
