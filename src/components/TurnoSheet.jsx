@@ -122,11 +122,15 @@ export default function TurnoSheet({ workspace, member, existing, defaultDate, o
     if (modalitaSelezione === "singoli") {
       giorni = Array.from(giorniSingoli).sort();
     } else {
-      let d = new Date(dataInizio + "T00:00:00");
-      const fine = new Date(dataFine + "T00:00:00");
-      while (d <= fine) {
-        giorni.push(d.toISOString().slice(0, 10));
-        d = new Date(d.getTime() + 86400000);
+      // Aritmetica in UTC puro: new Date("...T00:00:00") è mezzanotte LOCALE e toISOString()
+      // la converte in UTC, quindi in Italia ogni data scivolava al giorno prima (es. 28 -> 27).
+      const [y1, m1, d1] = dataInizio.split("-").map(Number);
+      const [y2, m2, d2] = dataFine.split("-").map(Number);
+      let t = Date.UTC(y1, m1 - 1, d1);
+      const fine = Date.UTC(y2, m2 - 1, d2);
+      while (t <= fine) {
+        giorni.push(new Date(t).toISOString().slice(0, 10));
+        t += 86400000;
       }
     }
 
