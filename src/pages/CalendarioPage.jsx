@@ -25,8 +25,10 @@ function startOfWeek(dateStr, settimanaInizio) {
   d.setDate(d.getDate() - diff);
   return d;
 }
-function toISO(d) { return d.toISOString().slice(0, 10); }
-function addDays(d, n) { return new Date(d.getTime() + n * 86400000); }
+// Data locale YYYY-MM-DD. NON usare toISOString(): converte in UTC e in Italia sposta la data al giorno prima.
+function toISO(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+// Somma giorni di calendario (non 24h): corretto anche attraverso il cambio ora legale/solare.
+function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
 
 function buildMonthGrid(dateStr, settimanaInizio) {
   const d = new Date(dateStr + "T00:00:00");
@@ -257,7 +259,7 @@ export default function CalendarioPage() {
             </button>
           </div>
           <div className="grid grid-cols-7 gap-1 mb-1">
-            {GIORNI_SETTIMANA.map((g, i) => (
+            {Array.from({ length: 7 }, (_, i) => GIORNI_SETTIMANA[(Number(settimanaInizio) + i) % 7]).map((g, i) => (
               <div key={i} className="text-center" style={{ fontSize: 9, color: C.muted, fontWeight: 600 }}>{g[0]}</div>
             ))}
           </div>
